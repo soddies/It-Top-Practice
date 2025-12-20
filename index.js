@@ -1,6 +1,7 @@
 const {
     Telegraf, 
-    Markup
+    Markup,
+    session
 } = require('telegraf')
 
 const func1 = require('./functions/func1')
@@ -20,15 +21,32 @@ const functions = {
 }
 
 const bot = new Telegraf('8404536921:AAF93gBUmUhkwy0DIu6i-M-MX-C4jAha_yY')
-bot.start((ctx) => ctx.reply('Привет. Я - бот-помощник для учебной части IT-Top колледжа. Нажмите "Продолжить" чтобы перейти к функциям, которые я выполняю.',
+
+bot.use(session({
+    defaultSession: () => ({
+        isInFunctionMenu: false
+    })
+}))
+
+bot.start((ctx) => {
+    ctx.session.isInFunctionMenu = false;
+    ctx.reply('Привет. Я - бот-помощник для учебной части IT-Top колледжа. Нажмите "Продолжить" чтобы перейти к функциям, которые я выполняю.',
     Markup.keyboard([
         ['Продолжить']
     ])
     .oneTime()
     .resize()
-))
+    )
+})
 
 bot.hears('Продолжить', (ctx) => {
+    ctx.session.isInFunctionMenu = true;
+    return showMainMenu(ctx);
+})
+
+
+function showMainMenu(ctx) {
+    ctx.session.isInFunctionMenu = true;
     return ctx.reply(
         'Выберите функцию: \n' +
         '\n1. Отчет по выставленному расписанию' +
@@ -43,25 +61,30 @@ bot.hears('Продолжить', (ctx) => {
             ['3', '4'],
             ['5', '6']
         ]).resize()
-    )   
-})
+    );
+}
 
 bot.hears(['1', '2', '3', '4', '5', '6'], async (ctx) => {
     const btnNumber = ctx.message.text;
-
-    if (functions[btnNumber])
-    {
+    ctx.session.isInFunctionMenu = false;
+    
+    if (functions[btnNumber]) {
         try {
             await functions[btnNumber](ctx);
         } catch (error) {
+            console.error(error);
             ctx.reply('Извините. Произошла ошибка');
         }
-    } else
-    {
+    } else {
         ctx.reply('Функция не найдена');
     }
 })
 
+bot.hears('↩️ Вернуться в меню', (ctx) => {
+    if (!ctx.session.isInFunctionMenu) {
+        return showMainMenu(ctx);
+    }
+});
 
 bot.help((ctx) => ctx.reply('/start - перзапуск бота\n' + 
     '/about - информация о создателе'))
