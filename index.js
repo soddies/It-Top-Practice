@@ -4,12 +4,21 @@ const {
     session
 } = require('telegraf')
 
+const path = require('path')
+
 const func1 = require('./functions/func1')
 const func2 = require('./functions/func2')
 const func3 = require('./functions/func3')
 const func4 = require('./functions/func4')
 const func5 = require('./functions/func5')
 const func6 = require('./functions/func6')
+
+const func1Handler = require('./functions/fucntionsHandlers/func1Handler')
+const func2Handler = require('./functions/fucntionsHandlers/func2Handler')
+const func3Handler = require('./functions/fucntionsHandlers/func3Handler')
+const func4Handler = require('./functions/fucntionsHandlers/func4Handler')
+const func5Handler = require('./functions/fucntionsHandlers/func5Handler')
+const func6Handler = require('./functions/fucntionsHandlers/func6Handler')
 
 const functions = {
     '1': func1,
@@ -24,7 +33,9 @@ const bot = new Telegraf('8404536921:AAF93gBUmUhkwy0DIu6i-M-MX-C4jAha_yY')
 
 bot.use(session({
     defaultSession: () => ({
-        isInFunctionMenu: false
+        isInFunctionMenu: false,
+        waitingForFile: false,
+        currentFunctions: null
     })
 }))
 
@@ -80,11 +91,55 @@ bot.hears(['1', '2', '3', '4', '5', '6'], async (ctx) => {
     }
 })
 
-bot.hears('↩️ Вернуться в меню', (ctx) => {
+bot.hears('Вернуться в меню', (ctx) => {
     if (!ctx.session.isInFunctionMenu) {
         return showMainMenu(ctx);
     }
 });
+
+bot.on('document', async(ctx) => {
+    if (!ctx.session.waitingForFile) {
+        return;
+    }
+    const file = ctx.message.document;
+    const filename = file.file_name;
+    const ext = path.extname(filename).toLowerCase();
+
+    if (ext !== '.xls' && ext !== '.xlsx') {
+        await ctx.reply("Неверный формат файла! Попробуйте еще раз.");
+        return;
+    }
+
+    if (ctx.session.currentFunctions === 'func1')
+    {
+        await func1Handler(ctx, file);
+    }
+
+    if (ctx.session.currentFunctions === 'func2')
+    {
+        await func2Handler(ctx, file);
+    }
+
+    if (ctx.session.currentFunctions === 'func3')
+    {
+        await func3Handler(ctx, file);
+    }
+    
+    if (ctx.session.currentFunctions === 'func4')
+    {
+        await func4Handler(ctx, file);
+    }
+
+    if (ctx.session.currentFunctions === 'func5')
+    {
+        await func5Handler(ctx, file);
+    }
+
+    if (ctx.session.currentFunctions === 'func6')
+    {
+        await func6Handler(ctx, file);
+    }
+})
 
 bot.help((ctx) => ctx.reply('/start - перзапуск бота\n' + 
     '/about - информация о создателе'))
