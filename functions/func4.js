@@ -3,6 +3,8 @@ const { Markup } = require('telegraf');
 
 module.exports = async (ctx) => {
     ctx.session.isInFunctionMenu = false;
+    ctx.session.waitingForFile = true;
+    ctx.session.currentFunctions = 'func4';
     
     await ctx.reply('Вы выбрали: 4');
     await ctx.reply("Пожалуйста, загрузите файл в формате XLS/XLSX", 
