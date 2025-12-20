@@ -1,4 +1,15 @@
 // отчет по проверенным ДЗ
+const { Markup } = require('telegraf');
+
 module.exports = async (ctx) => {
-    await ctx.reply('Функция 5 в разработке...')
-}
+    ctx.session.isInFunctionMenu = false;
+    
+    await ctx.reply('Вы выбрали: 5');
+    await ctx.reply("Пожалуйста, загрузите файл в формате XLS/XLSX", 
+        Markup.keyboard([
+            ['Вернуться в меню']
+        ])
+        .oneTime()
+        .resize()
+    );
+};
