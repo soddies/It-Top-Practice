@@ -1,20 +1,19 @@
 const XLSX = require('xlsx');
 
-function parseSchedule(filePath, targetGroup) {
+function parseSchedule(filePath) {
     const workbook = XLSX.readFile(filePath);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-    const subCount = {};
+    const allGroupsData = {};
     let groupColIndex = -1;
     let dayIndices = [];
     let lastFoundGroup = "";
 
-    const target = targetGroup.replace(/\s+/g, '').toLowerCase();
-
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length === 0) continue;
+
 
         if (groupColIndex === -1) {
             row.forEach((cell, idx) => {
@@ -27,57 +26,59 @@ function parseSchedule(filePath, targetGroup) {
             continue;
         }
 
-        let rawCellGroup = String(row[groupColIndex] || "").trim();
-        if (rawCellGroup) {
-            lastFoundGroup = rawCellGroup;
+        let currentGroup = String(row[groupColIndex] || "").trim();
+        if (currentGroup) {
+            lastFoundGroup = currentGroup;
         }
-        const normalizedFoundGroup = lastFoundGroup.replace(/\s+/g, '').toLowerCase();
-        if (normalizedFoundGroup === target || normalizedFoundGroup.includes(target)) {
+
+        if (lastFoundGroup) {
+            if (!allGroupsData[lastFoundGroup]) {
+                allGroupsData[lastFoundGroup] = {};
+            }
+
             dayIndices.forEach(idx => {
                 const cellValue = String(row[idx] || "");
-                
                 const match = cellValue.match(/Предмет:\s*(.+)/i);
                 
                 if (match) {
                     let subject = match[1].split('\n')[0].trim();
                     if (subject) {
-                        subCount[subject] = (subCount[subject] || 0) + 1;
+                        const groupSubjects = allGroupsData[lastFoundGroup];
+                        groupSubjects[subject] = (groupSubjects[subject] || 0) + 1;
                     }
                 }
             });
         }
     }
-    return subCount;
-}
-
-function formatReport(subjects, group) {
-    let text = `*Отчет по расписанию*\n`;
-    text += `Группа: \`${group}\`\n\n`;
-
-    const entries = Object.entries(subjects);
-    if (entries.length === 0) return null;
-
-    entries.forEach(([subject, count]) => {
-        text += `🔹 ${subject}: *${count}* пар(ы)\n`;
-    });
-
-    return text;
+    return allGroupsData;
 }
 
 module.exports = async (ctx, filePath) => {
-    const group = '9/3-РПО-23/2';
-    
     try {
-        const result = parseSchedule(filePath, group);
+        const allResults = parseSchedule(filePath);
+        const groupsFound = Object.keys(allResults);
 
-        if (!Object.keys(result).length) {
-            return ctx.reply(`Занятия для группы ${group} не найдены.`);
+        if (groupsFound.length === 0) {
+            return ctx.reply("В файле не найдено групп или занятий.");
         }
 
-        const report = formatReport(result, group);
-        await ctx.reply(report, { parse_mode: 'Markdown' });
+        let fullReport = "*Отчет по всем группам в файле:*\n\n";
+
+        for (const groupName of groupsFound) {
+            const subjects = allResults[groupName];
+            if (Object.keys(subjects).length === 0) continue;
+
+            fullReport += `*Группа:* \`${groupName}\`\n`;
+            for (const [sub, count] of Object.entries(subjects)) {
+                fullReport += `▫️ ${sub}: *${count} пар(ы)*\n`;
+            }
+            fullReport += `\n`;
+        }
+
+        await ctx.reply(fullReport, { parse_mode: 'Markdown' });
+
     } catch (err) {
-        console.error('Ошибка в парсере:', err);
-        await ctx.reply('Ошибка при чтении содержимого файла.');
+        console.error(err);
+        await ctx.reply('Произошла ошибка при обработке групп.');
     }
 }
