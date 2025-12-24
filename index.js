@@ -4,6 +4,9 @@ const {
     session
 } = require('telegraf')
 
+const fs = require('fs');
+const axios = require('axios');
+
 const path = require('path')
 
 const func1 = require('./functions/func1')
@@ -98,48 +101,57 @@ bot.hears('Вернуться в меню', (ctx) => {
 });
 
 bot.on('document', async(ctx) => {
-    if (!ctx.session.waitingForFile) {
-        return;
-    }
-    const file = ctx.message.document;
-    const filename = file.file_name;
-    const ext = path.extname(filename).toLowerCase();
+    if (!ctx.session.waitingForFile) return;
+
+    const document = ctx.message.document;
+    const ext = path.extname(document.file_name).toLowerCase();
 
     if (ext !== '.xls' && ext !== '.xlsx') {
-        await ctx.reply("Неверный формат файла! Попробуйте еще раз.");
-        return;
+        return ctx.reply('Неверный формат файла! Попробуйте еще раз');
     }
 
-    if (ctx.session.currentFunctions === 'func1')
-    {
-        await func1Handler(ctx, file);
-    }
+    try {
+        const fileLink = await ctx.telegram.getFileLink(document.file_id);
 
-    if (ctx.session.currentFunctions === 'func2')
-    {
-        await func2Handler(ctx, file);
-    }
+        const filePath = path.join(__dirname, 'temp.xlsx');
 
-    if (ctx.session.currentFunctions === 'func3')
-    {
-        await func3Handler(ctx, file);
-    }
-    
-    if (ctx.session.currentFunctions === 'func4')
-    {
-        await func4Handler(ctx, file);
-    }
+        const response = await axios.get(fileLink.href, {
+            responseType: 'arraybuffer'
+        });
 
-    if (ctx.session.currentFunctions === 'func5')
-    {
-        await func5Handler(ctx, file);
-    }
+        fs.writeFileSync(filePath, response.data);
 
-    if (ctx.session.currentFunctions === 'func6')
-    {
-        await func6Handler(ctx, file);
+        if (ctx.session.currentFunctions === 'func1') {
+            await func1Handler(ctx, filePath);
+        }
+
+        if (ctx.session.currentFunctions === 'func2') {
+            await func2Handler(ctx, filePath);
+        }
+
+        if (ctx.session.currentFunctions === 'func3') {
+            await func3Handler(ctx, filePath);
+        }
+
+        if (ctx.session.currentFunctions === 'func4') {
+            await func4Handler(ctx, filePath);
+        }
+
+        if (ctx.session.currentFunctions === 'func5') {
+            await func5Handler(ctx, filePath);
+        }
+
+        if (ctx.session.currentFunctions === 'func6') {
+            await func6Handler(ctx, filePath);
+        }
+
+        fs.unlinkSync(filePath);
     }
-})
+    catch (err) {
+        console.error(err);
+        ctx.reply('Ошибка при обработке файла');
+    }
+});
 
 bot.help((ctx) => ctx.reply('/start - перзапуск бота\n' + 
     '/about - информация о создателе'))
