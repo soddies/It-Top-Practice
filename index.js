@@ -9,12 +9,12 @@ const axios = require('axios');
 
 const path = require('path')
 
-const func1 = require('./functions/func1')
-const func2 = require('./functions/func2')
-const func3 = require('./functions/func3')
-const func4 = require('./functions/func4')
-const func5 = require('./functions/func5')
-const func6 = require('./functions/func6')
+const func1 = require('./functions/defaultFunctions/func1')
+const func2 = require('./functions/defaultFunctions/func2')
+const func3 = require('./functions/defaultFunctions/func3')
+const func4 = require('./functions/defaultFunctions/func4')
+const func5 = require('./functions/defaultFunctions/func5')
+const func6 = require('./functions/defaultFunctions/func6')
 
 const func1Handler = require('./functions/fucntionsHandlers/func1Handler')
 const func2Handler = require('./functions/fucntionsHandlers/func2Handler')
